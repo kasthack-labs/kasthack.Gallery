@@ -1,0 +1,45 @@
+﻿p.title
+{
+	font-size:xx-large;
+	text-align: center;
+}
+table.main_table
+{
+	width:100%;
+}
+p.counter
+{
+	text-align:center;
+}
+p.hoster
+{
+	text-align:center;
+}
+p.copyright
+{
+	text-align:center;
+}
+div.img_div
+{
+}
+.inline
+{
+	display:inline-block;
+}
+.third
+{
+	width:33%;
+}
+a.arrow
+{
+	font-size:xx-large;
+	font:bold;
+}
+td.left_arrow
+{
+	text-align:left;
+}
+td.right_arrow
+{
+	text-align:right;
+}
