@@ -50,12 +50,12 @@
 			<tr>
 				<td class="third">
 					<p class="counter">
-						<a href="http://github.com/kasthack/GalleryGen">GalleryGen</a> by kasthack
+						Page built with <a href="http://github.com/kasthack/Gallery">GalleryGen by kasthack</a>
 					</p>
 				</td>
 				<td class="third">
 					<p class="copyright">
-						<a class="copyright" href="http://github.com/kasthack">kasthack</a>
+						<a class="copyright" href="http://github.com/kasthack">kasthack — 2013</a>
 					</p>
 				</td>
 				<td class="third">

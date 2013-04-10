@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -7,14 +8,50 @@ using System.Threading.Tasks;
 namespace gallery_builder {
 	class Program {
 		static void Main( string[] args ) {
-			string template_dir = _q("Input template dir");//Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),"..\\..\\tpls");
-			string images_big = _q("Input images path");
-			string images_small = _q("Preview gen images path");
-			string output_dir = _q("Output dir");
-			int imgs_per_page = int.Parse(_q("Images per page"));
-			int max_imgs = int.Parse(_q("Max imgs"));
-			var _tmp_sz = _q("Max preview size(WxH)").Split(new char[] { 'x' }).Select(a => int.Parse(a)).ToArray();
-			Size img_size = new Size(_tmp_sz[0], _tmp_sz[1]);
+
+			string template_dir = 
+#if !DEBUG
+				_q("Input template dir");
+#else
+			Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),"..\\..\\tpls");
+#endif
+			string images_big =
+#if !DEBUG
+				_q("Input images path");
+#else
+				@"e:\gc\dwnld\bfl";
+#endif
+			string output_dir =
+#if !DEBUG
+				_q("Output dir");
+#else
+			@"f:\fp";
+#endif
+			string images_small =
+#if !DEBUG
+				_q("Output preview images path");
+#else
+				@"F:\fp\prev";
+#endif
+			int max_imgs =
+#if !DEBUG
+				int.Parse(_q("Max imgs"));
+#else
+			4000;
+#endif
+			int imgs_per_page =
+#if !DEBUG
+				int.Parse(_q("Images per page"));
+#else
+			100;
+#endif
+			Size img_size;
+#if !DEBUG
+			var _tmp_sz =_q("Max preview size(WxH)").Split(new char[] { 'x' }).Select(a => int.Parse(a)).ToArray();
+			img_size = new Size(_tmp_sz[0], _tmp_sz[1]);
+#else
+				img_size = new Size(180,135);
+#endif
 
 			var gen = new Generator() {
 				TplDir = template_dir,
@@ -36,11 +73,11 @@ namespace gallery_builder {
 		}
 	}
 	class Generator {
-		public string PreviewDir, ImgDir, OutputDir, TplDir, PreviewPrefix = "s_";
+		public string PreviewDir, ImgDir, OutputDir, TplDir, PreviewPrefix = "s_", Extension = "jpg";
 		public string[] Files;
 		public int ImagesPerPage;
 		public Size PreviewSize;
-
+		public ImageFormat PreviewImageFormat = ImageFormat.Jpeg;
 		public void Generate() {
 			//paginate
 			string[][] _pages = Enumerable.
@@ -72,43 +109,45 @@ namespace gallery_builder {
 			}
 		}
 		public void ResizeImages() {
-			string[] _ReadyFiles = Directory.GetFiles(PreviewDir).Select(Path.GetFileName).ToArray();
+			string[] _ReadyFiles = Directory.GetFiles(PreviewDir).Select(Path.GetFileNameWithoutExtension).ToArray();
 			Array.Sort(_ReadyFiles);
 			//only !converted
 			string[] _ConvertFiles = null;
 			if ( _ReadyFiles.Length > 0 ) {
 				_ConvertFiles = this.Files.
-				Where(a => Array.BinarySearch(_ReadyFiles, PreviewPrefix + Path.GetFileName(a)) < 0).
+				Where(a => Array.BinarySearch(_ReadyFiles, PreviewPrefix + Path.GetFileNameWithoutExtension(a)) < 0).
 				ToArray();
 			}
 			else {
 				_ConvertFiles = this.Files;
 			}
 			Parallel.ForEach(_ConvertFiles,
-#if DEBUG
-				new ParallelOptions() {
-				MaxDegreeOfParallelism=1
-			},
-#endif
-				a => {
-				Bitmap b = (Bitmap)Bitmap.FromFile(a);
-				//prepare width, height
-				var _scale = Math.Min((double)PreviewSize.Width / b.Width, (double)PreviewSize.Height / b.Height);
-				var _width = (int)( b.Width * _scale );
-				var _height = (int)( b.Height * _scale );
-				Bitmap _output = new Bitmap(_width, _height);
-				Graphics _g = Graphics.FromImage(_output);
-				//resize
-				_g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-				_g.DrawImage(b, 0, 0, _width, _height);
-				_g.Flush();
-				//save
-				_output.Save(Path.Combine(PreviewDir, PreviewPrefix + Path.GetFileName(a)));
-				//gc
-				_output.Dispose();
-				b.Dispose();
-				_g.Dispose();
-			});
+		 a => {
+			 Bitmap b = (Bitmap)Bitmap.FromFile(a);
+			 //prepare width, height
+			 var _scale = Math.Min((double)PreviewSize.Width / b.Width, (double)PreviewSize.Height / b.Height);
+			 var _width = (int)( b.Width * _scale );
+			 var _height = (int)( b.Height * _scale );
+			 Bitmap _output = new Bitmap(_width, _height, PixelFormat.Format16bppRgb555);
+			 Graphics _g = Graphics.FromImage(_output);
+			 //resize
+			 _g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+			 _g.DrawImage(b, 0, 0, _width, _height);
+			 _g.Flush();
+			 //save
+			 _output.Save(
+				 Path.Combine(
+					 PreviewDir,
+					 PreviewPrefix +
+						 Path.GetFileNameWithoutExtension(a)) +
+						 '.'+this.Extension,
+					 this.PreviewImageFormat
+			 );
+			 //gc
+			 _output.Dispose();
+			 b.Dispose();
+			 _g.Dispose();
+		 });
 		}
 		public string CreatePage( string[] _pages, string _page_tpl, string _entity_tpl, int _index ) {
 			//determine if last o first
@@ -131,7 +170,7 @@ namespace gallery_builder {
 														_entity_tpl,
 														Path.Combine(
 															_PreviewDir,
-															PreviewPrefix + a),
+															PreviewPrefix + Path.GetFileNameWithoutExtension(a)+'.'+this.Extension),
 														Path.Combine(
 															_ImgDir,
 															a
