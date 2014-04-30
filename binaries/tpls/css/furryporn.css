@@ -33,7 +33,7 @@ div.img_div
 a.arrow
 {
 	font-size:xx-large;
-	font:bold;
+	font-weight: bold;
 }
 td.left_arrow
 {
